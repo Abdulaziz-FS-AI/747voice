@@ -459,10 +459,3 @@ export interface AssistantWithStatus extends Assistant {
   isExpiredByTime: boolean
   isExpiredByUsage: boolean
 }
-
-// Demo limits constants
-export const DEMO_LIMITS = {
-  MAX_ASSISTANTS: 3,
-  MAX_MINUTES_TOTAL: 10,
-  MAX_LIFETIME_DAYS: 7
-} as const
