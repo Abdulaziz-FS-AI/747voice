@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { Plus, Search, Edit, Trash2, MoreVertical, Bot, Zap, Sparkles, RefreshCw } from 'lucide-react'
+import { useUsageLimits } from '@/hooks/use-usage-limits'
+import { Plus, Search, Edit, Trash2, MoreVertical, Bot, Zap, Sparkles, RefreshCw, Lock, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +45,13 @@ export default function AssistantsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
+  const { 
+    usage, 
+    loading: usageLoading, 
+    canCreateAssistant, 
+    isAtAssistantLimit,
+    getAssistantLimitMessage 
+  } = useUsageLimits()
   
   const [assistants, setAssistants] = useState<Assistant[]>([])
   const [syncing, setSyncing] = useState(false)
@@ -256,6 +264,26 @@ export default function AssistantsPage() {
               </motion.p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Usage Status Indicator */}
+              {usage && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-right"
+                >
+                  <div className="text-sm text-gray-300 mb-1">
+                    Assistant Usage
+                  </div>
+                  <div className={`text-lg font-bold flex items-center gap-2 ${
+                    isAtAssistantLimit ? 'text-red-400' : usage.assistants.count >= usage.assistants.limit * 0.8 ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
+                    {usage.assistants.count}/{usage.assistants.limit}
+                    {isAtAssistantLimit && <Lock className="h-4 w-4" />}
+                  </div>
+                </motion.div>
+              )}
+
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -278,21 +306,64 @@ export default function AssistantsPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: canCreateAssistant ? 1.02 : 1 }}
+                whileTap={{ scale: canCreateAssistant ? 0.98 : 1 }}
               >
                 <Button 
-                  onClick={() => router.push('/dashboard/assistants/new')}
-                  className="relative overflow-hidden group shadow-xl hover:shadow-2xl transition-all"
+                  onClick={() => {
+                    if (canCreateAssistant) {
+                      router.push('/dashboard/assistants/new')
+                    } else {
+                      const message = getAssistantLimitMessage()
+                      toast({
+                        title: "Assistant Limit Reached",
+                        description: (
+                          <div className="space-y-3">
+                            <p className="text-sm">{message}</p>
+                            {usage?.assistants.limit === 3 && (
+                              <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
+                                <Sparkles className="h-4 w-4 text-purple-400" />
+                                <span className="text-xs text-purple-300">
+                                  Upgrade to Pro for 10 assistants
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ),
+                        variant: "destructive",
+                        duration: 6000
+                      })
+                    }
+                  }}
+                  disabled={!canCreateAssistant || usageLoading}
+                  className={`relative overflow-hidden group shadow-xl transition-all ${
+                    canCreateAssistant 
+                      ? 'hover:shadow-2xl' 
+                      : 'opacity-50 cursor-not-allowed'
+                  }`}
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: canCreateAssistant 
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : 'linear-gradient(135deg, #6b7280 0%, #374151 100%)',
                     border: 'none'
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700" />
-                  <Plus className="mr-2 h-5 w-5" />
-                  <span className="font-semibold">Create AI Voice Agent Assistant</span>
-                  <Sparkles className="ml-2 h-4 w-4" />
+                  {canCreateAssistant && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                  )}
+                  {canCreateAssistant ? (
+                    <Plus className="mr-2 h-5 w-5" />
+                  ) : (
+                    <Lock className="mr-2 h-5 w-5" />
+                  )}
+                  <span className="font-semibold">
+                    {canCreateAssistant ? 'Create AI Voice Agent Assistant' : 'Assistant Limit Reached'}
+                  </span>
+                  {canCreateAssistant ? (
+                    <Sparkles className="ml-2 h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="ml-2 h-4 w-4" />
+                  )}
                 </Button>
               </motion.div>
             </div>
@@ -427,22 +498,67 @@ export default function AssistantsPage() {
                       <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--vm-pure)' }}>No AI Voice Agent Agents Deployed</h3>
                       <p className="mb-6 text-lg" style={{ color: 'var(--vm-gray-400)' }}>Initialize your first AI consciousness to begin the voice agent matrix</p>
                       <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ scale: canCreateAssistant ? 1.05 : 1 }}
+                        whileTap={{ scale: canCreateAssistant ? 0.95 : 1 }}
                       >
                         <Button 
-                          onClick={() => router.push('/dashboard/assistants/new')}
-                          className="relative overflow-hidden group"
+                          onClick={() => {
+                            if (canCreateAssistant) {
+                              router.push('/dashboard/assistants/new')
+                            } else {
+                              const message = getAssistantLimitMessage()
+                              toast({
+                                title: "Assistant Limit Reached",
+                                description: (
+                                  <div className="space-y-3">
+                                    <p className="text-sm">{message}</p>
+                                    {usage?.assistants.limit === 3 && (
+                                      <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
+                                        <Sparkles className="h-4 w-4 text-purple-400" />
+                                        <span className="text-xs text-purple-300">
+                                          Upgrade to Pro for 10 assistants
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ),
+                                variant: "destructive",
+                                duration: 6000
+                              })
+                            }
+                          }}
+                          disabled={!canCreateAssistant || usageLoading}
+                          className={`relative overflow-hidden group ${
+                            canCreateAssistant 
+                              ? '' 
+                              : 'opacity-50 cursor-not-allowed'
+                          }`}
                           style={{
-                            background: 'var(--vm-gradient-brand)',
+                            background: canCreateAssistant 
+                              ? 'var(--vm-gradient-brand)'
+                              : 'linear-gradient(135deg, #6b7280 0%, #374151 100%)',
                             border: 'none',
-                            boxShadow: '0 8px 32px rgba(255, 107, 53, 0.3)'
+                            boxShadow: canCreateAssistant 
+                              ? '0 8px 32px rgba(255, 107, 53, 0.3)'
+                              : '0 8px 32px rgba(107, 114, 128, 0.3)'
                           }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700" />
-                          <Plus className="mr-2 h-5 w-5" />
-                          <span className="font-semibold">Deploy First Agent</span>
-                          <Zap className="ml-2 h-4 w-4" />
+                          {canCreateAssistant && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                          )}
+                          {canCreateAssistant ? (
+                            <Plus className="mr-2 h-5 w-5" />
+                          ) : (
+                            <Lock className="mr-2 h-5 w-5" />
+                          )}
+                          <span className="font-semibold">
+                            {canCreateAssistant ? 'Deploy First Agent' : 'Limit Reached'}
+                          </span>
+                          {canCreateAssistant ? (
+                            <Zap className="ml-2 h-4 w-4" />
+                          ) : (
+                            <AlertTriangle className="ml-2 h-4 w-4" />
+                          )}
                         </Button>
                       </motion.div>
                     </>

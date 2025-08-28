@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Lock } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { ModelSelector } from '@/components/assistants/model-selector'
 import { VoiceSelector } from '@/components/assistants/voice-selector'
@@ -20,6 +20,7 @@ import { EvaluationSelector } from '@/components/assistants/evaluation-selector'
 import { MessageType } from '@/components/assistants/client-messages-selector'
 import { StructuredQuestion, EvaluationRubric } from '@/lib/structured-data'
 import { useEnforcedAction } from '@/hooks/use-enforced-action'
+import { UsageStatusIndicator } from '@/components/ui/usage-status-indicator'
 
 // Form data interface
 interface AssistantFormData {
@@ -60,7 +61,7 @@ export function CreateAssistantForm({ templateData, onCancel }: CreateAssistantF
   const [isLoading, setIsLoading] = useState(false)
   
   // Usage enforcement for assistant creation
-  const { executeAction } = useEnforcedAction({
+  const { executeAction, canPerform, isChecking, getAssistantLimitMessage } = useEnforcedAction({
     actionType: 'assistants',
     onSuccess: () => {} // Will be handled in form submit
   })
@@ -221,6 +222,26 @@ export function CreateAssistantForm({ templateData, onCancel }: CreateAssistantF
 
       {/* Main Form Content */}
       <div className="max-w-6xl mx-auto px-8 py-8">
+        {/* Usage Status Card */}
+        <div className="mb-6">
+          <UsageStatusIndicator variant="card" className="bg-gray-900/50 backdrop-blur border-gray-700" />
+        </div>
+
+        {/* Limit Warning */}
+        {!canPerform && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <Lock className="h-5 w-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-red-400 mb-1">Assistant Creation Blocked</h3>
+                <p className="text-sm text-red-300">{getAssistantLimitMessage()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           
           {/* Basic Configuration Section */}
@@ -458,16 +479,25 @@ export function CreateAssistantForm({ templateData, onCancel }: CreateAssistantF
             
             <Button 
               type="submit" 
-              disabled={isLoading} 
-              className="px-8 h-11 font-medium"
+              disabled={isLoading || !canPerform || isChecking} 
+              className={`px-8 h-11 font-medium ${
+                !canPerform ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               style={{ 
-                background: 'var(--vm-gradient-primary)', 
+                background: canPerform 
+                  ? 'var(--vm-gradient-primary)' 
+                  : 'linear-gradient(135deg, #6b7280 0%, #374151 100%)', 
                 color: 'white',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.25)'
+                boxShadow: canPerform 
+                  ? '0 4px 12px rgba(139, 92, 246, 0.25)'
+                  : '0 4px 12px rgba(107, 114, 128, 0.25)'
               }}
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? 'Creating Assistant...' : 'Create Assistant'}
+              {(isLoading || isChecking) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!canPerform && <Lock className="mr-2 h-4 w-4" />}
+              {isLoading ? 'Creating Assistant...' : 
+               isChecking ? 'Checking Limits...' :
+               !canPerform ? 'Limit Reached' : 'Create Assistant'}
             </Button>
           </div>
         </form>
