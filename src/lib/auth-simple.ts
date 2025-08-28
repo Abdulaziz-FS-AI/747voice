@@ -1,5 +1,5 @@
-// SIMPLE AUTH BYPASS - For immediate testing
-import { createServiceRoleClient } from '@/lib/supabase';
+// REAL AUTH - Using actual Supabase session
+import { createServerSupabaseClient } from '@/lib/supabase';
 
 export class AuthError extends Error {
   public statusCode: number;
@@ -13,73 +13,47 @@ export class AuthError extends Error {
   }
 }
 
-// HARDCODED auth for immediate testing
+// Real authentication using actual user session
 export async function requireAuth(): Promise<{ user: any; profile: any }> {
-  console.log('🔐 [SIMPLE-AUTH] Using hardcoded auth for testing');
+  console.log('🔐 [AUTH] Getting authenticated user from session');
   
-  const supabase = createServiceRoleClient('auth_simple_test');
-  const testEmail = 'test@voicematrix.ai';
+  const supabase = await createServerSupabaseClient();
   
-  // First, try to find an existing user by email
-  const { data: existingUsers } = await supabase.auth.admin.listUsers();
-  const existingUser = existingUsers?.users?.find(u => u.email === testEmail);
+  // Get the authenticated user from the session
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   
-  let userId: string;
-  
-  if (existingUser) {
-    console.log('🔐 [SIMPLE-AUTH] Found existing auth user:', existingUser.id);
-    userId = existingUser.id;
-  } else {
-    // Create a real user in auth.users table
-    console.log('🔐 [SIMPLE-AUTH] Creating new auth user');
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email: testEmail,
-      password: 'test-demo-password-2024',
-      email_confirm: true,
-      user_metadata: {
-        full_name: 'Test Demo User'
-      }
-    });
-    
-    if (createError) {
-      console.error('🔐 [SIMPLE-AUTH] Failed to create auth user:', createError);
-      throw new AuthError('Failed to create test user');
-    }
-    
-    userId = newUser.user.id;
-    console.log('🔐 [SIMPLE-AUTH] Created auth user:', userId);
+  if (authError || !user) {
+    console.error('🔐 [AUTH] No authenticated user:', authError);
+    throw new AuthError('Authentication required', 'NO_SESSION', 401);
   }
   
+  console.log('🔐 [AUTH] Found authenticated user:', user.id, user.email);
+  
   // Check if profile exists
-  const { data: existingProfile } = await supabase
+  const { data: existingProfile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', userId)
-    .single();
+    .eq('id', user.id)
+    .maybeSingle();
+  
+  if (profileError) {
+    console.error('🔐 [AUTH] Error fetching profile:', profileError);
+    throw new AuthError('Failed to fetch user profile', 'PROFILE_ERROR', 500);
+  }
   
   if (existingProfile) {
-    console.log('🔐 [SIMPLE-AUTH] Found existing profile');
+    console.log('🔐 [AUTH] Found existing profile for user');
     return {
-      user: {
-        id: userId,
-        email: testEmail,
-        user_metadata: { full_name: existingProfile.full_name }
-      },
+      user: user,
       profile: existingProfile
     };
   }
   
   // Profile doesn't exist, let the API create it
-  console.log('🔐 [SIMPLE-AUTH] No profile found, will be created by API');
+  console.log('🔐 [AUTH] No profile found, will be created by API');
   
   return {
-    user: {
-      id: userId,
-      email: testEmail,
-      user_metadata: {
-        full_name: 'Test Demo User'
-      }
-    },
+    user: user,
     profile: null
   };
 }
