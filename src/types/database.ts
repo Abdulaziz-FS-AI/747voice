@@ -4,6 +4,13 @@
 // Clean types for demo-only system with no subscriptions
 // =============================================
 
+// Demo limits constants
+export const DEMO_LIMITS = {
+  MAX_ASSISTANTS: 3,
+  MAX_MINUTES_TOTAL: 10,
+  MAX_LIFETIME_DAYS: 7 // Legacy - no longer used but kept for compatibility
+} as const;
+
 export type Json =
   | string
   | number

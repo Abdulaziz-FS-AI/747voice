@@ -36,10 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Handle successful sign in - let auth callback handle routing
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🚀 Auth context - SIGNED_IN event, current path:', window.location.pathname)
+        console.log('🚀 Auth context - SIGNED_IN event, current path:', typeof window !== 'undefined' ? window.location.pathname : 'SSR')
         
-        // Only redirect from signin page after checking profile status
-        if (window.location.pathname === '/signin') {
+        // Only redirect from signin page after checking profile status (client-side only)
+        if (typeof window !== 'undefined' && window.location.pathname === '/signin') {
           // Demo system: Ensure profile exists and redirect to dashboard
           ensureUserProfile(session.user.id).then((result) => {
             console.log('🚀 Auth context - ensure profile result:', result)

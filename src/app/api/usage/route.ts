@@ -1,51 +1,95 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { requireAuth as authenticateRequest } from '@/lib/auth-simple'
+import { createServiceRoleClient } from '@/lib/supabase'
 
 // GET /api/usage - Get current user's usage data and limits
 export async function GET(request: NextRequest) {
   try {
-    // In a real app, you'd get the user ID from authentication
-    // For testing, let's use our test user
-    const userId = 'd2a8d7e6-b982-4dc8-b257-8f1c5e0e11cb' // existing_user@example.com
+    // Get authenticated user
+    const authResult = await authenticateRequest()
+    const user = authResult.user
+    const userId = user.id
 
-    // Get user data from admin monitoring view
+    const supabase = createServiceRoleClient('usage_api')
+
+    // Get user data from admin monitoring view with actual usage calculation
     const { data: userData, error: userError } = await supabase
       .from('admin_user_monitoring')
       .select('*')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
     if (userError) {
       throw userError
     }
 
-    if (!userData) {
-      return NextResponse.json(
-        { success: false, error: { message: 'User not found' } },
-        { status: 404 }
-      )
+    // If no user profile found, create one with default values
+    let userProfile = userData
+    if (!userProfile) {
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || 'User',
+          max_assistants: 3,
+          max_minutes_total: 10,
+          current_usage_minutes: 0
+        })
+        .select('*')
+        .single()
+
+      if (createError) {
+        console.error('Error creating user profile:', createError)
+        throw createError
+      }
+
+      // Get the full monitoring view for the new user
+      const { data: monitoringData } = await supabase
+        .from('admin_user_monitoring')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      userProfile = monitoringData || {
+        user_id: userId,
+        email: user.email || '',
+        max_assistants: 3,
+        max_minutes_total: 10,
+        current_usage_minutes: 0,
+        active_assistants: 0,
+        usage_percentage: 0,
+        account_status: 'NORMAL',
+        quick_actions: { can_increase_assistants: true, can_increase_minutes: true }
+      }
     }
 
-    // Transform the data to match the expected format
+    // Calculate ACTUAL usage from call logs for this specific user
+    const { data: actualUsageData } = await supabase.rpc('get_user_actual_usage', {
+      p_user_id: userId
+    })
+
+    const actualUsageMinutes = actualUsageData?.[0]?.actual_usage || userProfile.current_usage_minutes || 0
+
+    // Transform the data to match the expected format using ACTUAL usage
+    const limit = userProfile.max_minutes_total || 10
+    const remaining = Math.max(0, limit - actualUsageMinutes)
+    const percentage = limit > 0 ? Math.round((actualUsageMinutes / limit) * 100) : 0
+    
     const usageData = {
       minutes: {
-        used: userData.current_usage_minutes || 0,
-        limit: userData.max_minutes_total || 10,
-        percentage: userData.usage_percentage || 0,
-        remaining: Math.max(0, (userData.max_minutes_total || 10) - (userData.current_usage_minutes || 0)),
-        canMakeCall: (userData.current_usage_minutes || 0) < (userData.max_minutes_total || 10)
+        used: Number(actualUsageMinutes),
+        limit: limit,
+        percentage: percentage,
+        remaining: Number(remaining),
+        canMakeCall: actualUsageMinutes < limit
       },
       assistants: {
-        count: userData.active_assistants || 0,
-        limit: userData.max_assistants || 3,
-        canCreateAssistant: userData.quick_actions?.can_increase_assistants ?? true
+        count: userProfile.active_assistants || 0,
+        limit: userProfile.max_assistants || 3,
+        canCreateAssistant: (userProfile.active_assistants || 0) < (userProfile.max_assistants || 3)
       },
-      account_status: userData.account_status || 'NORMAL'
+      account_status: userProfile.account_status || 'NORMAL'
     }
 
     return NextResponse.json({
@@ -70,11 +114,15 @@ export async function GET(request: NextRequest) {
 // POST /api/usage - Update usage data (for when calls are made)
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user
+    const authResult = await authenticateRequest()
+    const user = authResult.user
+    const userId = user.id
+    
+    const supabase = createServiceRoleClient('usage_api_post')
+    
     const body = await request.json()
     const { minutesUsed, callId, assistantId } = body
-
-    // In a real app, you'd get the user ID from authentication
-    const userId = 'd2a8d7e6-b982-4dc8-b257-8f1c5e0e11cb' // existing_user@example.com
 
     if (!minutesUsed || !assistantId) {
       return NextResponse.json(
@@ -83,7 +131,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update user's current usage
+    // Verify the assistant belongs to the authenticated user
+    const { data: assistantCheck } = await supabase
+      .from('user_assistants')
+      .select('user_id')
+      .eq('vapi_assistant_id', assistantId)
+      .eq('user_id', userId)
+      .single()
+
+    if (!assistantCheck) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Assistant not found or does not belong to user' } },
+        { status: 403 }
+      )
+    }
+
+    // Update user's current usage (we keep this for fast lookups)
     const { error: updateError } = await supabase
       .from('profiles')
       .update({

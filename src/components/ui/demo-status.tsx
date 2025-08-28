@@ -33,8 +33,15 @@ export function DemoStatusCard() {
   const [demoStatus, setDemoStatus] = useState<DemoStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchDemoStatus = async () => {
       try {
         setLoading(true)
@@ -59,7 +66,26 @@ export function DemoStatusCard() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchDemoStatus, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [mounted])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Timer className="h-5 w-5" />
+            Demo Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (loading) {
     return (

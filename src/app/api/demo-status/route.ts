@@ -13,15 +13,39 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceRoleClient('demo_status');
 
     // Get user profile from profiles table
-    const { data: userProfile, error } = await supabase
+    let { data: userProfile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('[Demo Status API] Error fetching user demo status:', error);
       throw error;
+    }
+
+    // If no profile found, create one with default values
+    if (!userProfile) {
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || 'User',
+          max_assistants: DEMO_LIMITS.MAX_ASSISTANTS,
+          max_minutes_total: DEMO_LIMITS.MAX_MINUTES_TOTAL,
+          current_usage_minutes: 0
+        })
+        .select('*')
+        .single();
+
+      if (createError) {
+        console.error('[Demo Status API] Error creating user profile:', createError);
+        throw createError;
+      }
+      
+      // Use the new profile
+      userProfile = newProfile;
     }
 
     // Get active assistants from user_assistants table
@@ -31,30 +55,27 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('assistant_state', 'active');
 
-    // Calculate assistant expiry info from user_assistants
+    // Get actual usage from monitoring view
+    const actualUsageMinutes = userProfile?.total_minutes_used_actual || userProfile?.current_usage_minutes || 0
+
+    // Calculate assistant info from user_assistants (no expiry since we removed time-based expiration)
     const assistantExpiryInfo = activeAssistants?.map(assistant => {
-      const createdAt = new Date(assistant.created_at);
-      const expiresAt = new Date(assistant.expires_at);
-      const now = new Date();
-      const daysUntilExpiry = Math.max(0, Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      
       return {
         id: assistant.id,
         name: assistant.name,
         usageMinutes: assistant.usage_minutes || 0,
-        daysUntilExpiry,
-        isExpiredByTime: now > expiresAt,
-        isExpiredByUsage: (userProfile?.current_usage_minutes || 0) >= (userProfile?.max_minutes_total || DEMO_LIMITS.MAX_MINUTES_TOTAL)
+        daysUntilExpiry: -1, // No time-based expiry
+        isExpiredByTime: false, // No time-based expiry
+        isExpiredByUsage: actualUsageMinutes >= (userProfile?.max_minutes_total || DEMO_LIMITS.MAX_MINUTES_TOTAL)
       };
     }) || [];
 
     const activeAssistantCount = activeAssistants?.length || 0;
-    const currentUsageMinutes = userProfile?.current_usage_minutes || 0;
     const maxMinutesTotal = userProfile?.max_minutes_total || DEMO_LIMITS.MAX_MINUTES_TOTAL;
     const maxAssistants = userProfile?.max_assistants || DEMO_LIMITS.MAX_ASSISTANTS;
-    const remainingMinutes = Math.max(0, maxMinutesTotal - currentUsageMinutes);
+    const remainingMinutes = Math.max(0, maxMinutesTotal - actualUsageMinutes);
     const remainingAssistantSlots = Math.max(0, maxAssistants - activeAssistantCount);
-    const usageLimitReached = currentUsageMinutes >= maxMinutesTotal;
+    const usageLimitReached = actualUsageMinutes >= maxMinutesTotal;
     const assistantLimitReached = activeAssistantCount >= maxAssistants;
 
     // Build demo status response from actual schema data
@@ -63,11 +84,11 @@ export async function GET(request: NextRequest) {
       email: userProfile?.email || user.email,
       fullName: userProfile?.full_name || 'User',
       
-      // Usage tracking
-      currentUsageMinutes,
+      // Usage tracking (using actual usage from call logs)
+      currentUsageMinutes: Number(actualUsageMinutes),
       maxMinutesTotal,
-      remainingMinutes,
-      usagePercentage: Math.round((currentUsageMinutes / maxMinutesTotal) * 100),
+      remainingMinutes: Number(remainingMinutes),
+      usagePercentage: Math.round((actualUsageMinutes / maxMinutesTotal) * 100),
       
       // Assistant limits
       activeAssistants: activeAssistantCount,
@@ -92,7 +113,7 @@ export async function GET(request: NextRequest) {
       // Status indicators
       warningLevel: (() => {
         if (usageLimitReached || assistantLimitReached) return 'critical';
-        if (currentUsageMinutes >= maxMinutesTotal * 0.8) return 'warning';
+        if (actualUsageMinutes >= maxMinutesTotal * 0.8) return 'warning';
         if (activeAssistantCount >= maxAssistants * 0.8) return 'warning';
         return 'normal';
       })()
