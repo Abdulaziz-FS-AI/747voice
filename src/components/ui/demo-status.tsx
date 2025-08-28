@@ -145,7 +145,7 @@ export function DemoStatusCard() {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Timer className="h-5 w-5" />
-            Demo Account Status
+            Account Status
           </div>
           {getStatusBadge()}
         </CardTitle>
@@ -198,11 +198,11 @@ export function DemoStatusCard() {
           <div className="flex items-start gap-2 p-3 bg-red-50 rounded-md">
             <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-red-800">Demo Limits Reached</p>
+              <p className="font-medium text-red-800">Usage Limits Reached</p>
               <p className="text-red-600">
                 {demoStatus.usageLimitReached && 'Usage limit exceeded. '}
                 {demoStatus.assistantLimitReached && 'Assistant limit reached. '}
-                All assistants have been automatically deleted.
+                Assistants may be automatically suspended.
               </p>
             </div>
           </div>
@@ -214,33 +214,12 @@ export function DemoStatusCard() {
             <div className="text-sm">
               <p className="font-medium text-yellow-800">Approaching Limits</p>
               <p className="text-yellow-600">
-                You're nearing your demo limits. Assistants will be automatically deleted when limits are reached.
+                You're nearing your usage limits. Consider upgrading your plan or managing your usage.
               </p>
             </div>
           </div>
         )}
 
-        {/* Demo Info */}
-        <div className="pt-3 border-t">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="h-4 w-4 text-green-500" />
-            <span className="text-sm font-medium">Demo Limits</span>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-xs text-gray-600">
-            <div className="text-center">
-              <div className="font-medium">{DEMO_LIMITS.MAX_ASSISTANTS}</div>
-              <div>Max Assistants</div>
-            </div>
-            <div className="text-center">
-              <div className="font-medium">{DEMO_LIMITS.MAX_MINUTES_TOTAL} min</div>
-              <div>Total Usage</div>
-            </div>
-            <div className="text-center">
-              <div className="font-medium">{DEMO_LIMITS.MAX_LIFETIME_DAYS} days</div>
-              <div>Max Lifespan</div>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )
