@@ -92,6 +92,18 @@ export async function GET(request: NextRequest) {
       account_status: userProfile.account_status || 'NORMAL'
     }
 
+    // Debug logging
+    console.log('[API USAGE DEBUG]:', {
+      userId,
+      userEmail: user.email,
+      activeAssistants: userProfile.active_assistants,
+      maxAssistants: userProfile.max_assistants,
+      canCreateCalculation: `${userProfile.active_assistants || 0} < ${userProfile.max_assistants || 3} = ${(userProfile.active_assistants || 0) < (userProfile.max_assistants || 3)}`,
+      actualUsageMinutes,
+      limit,
+      canMakeCall: actualUsageMinutes < limit
+    })
+
     return NextResponse.json({
       success: true,
       data: usageData

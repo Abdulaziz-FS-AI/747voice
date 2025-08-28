@@ -28,6 +28,13 @@ export function useUsageLimits() {
 
   const fetchUsage = useCallback(async () => {
     if (!user) {
+      console.log('[useUsageLimits] No user found, skipping usage fetch')
+      // Set default values when no user
+      setUsage({
+        minutes: { used: 0, limit: 100, percentage: 0, remaining: 100, canMakeCall: true },
+        assistants: { count: 0, limit: 10, canCreateAssistant: true },
+        account_status: 'NORMAL'
+      })
       setLoading(false)
       return
     }
@@ -45,14 +52,29 @@ export function useUsageLimits() {
       })
 
       if (!response.ok) {
+        console.error('[useUsageLimits] API returned error:', response.status, response.statusText)
+        // Set default values if API fails
+        setUsage({
+          minutes: { used: 0, limit: 100, percentage: 0, remaining: 100, canMakeCall: true },
+          assistants: { count: 0, limit: 10, canCreateAssistant: true },
+          account_status: 'NORMAL'
+        })
         throw new Error(`Failed to fetch usage data: ${response.statusText}`)
       }
 
       const data = await response.json()
       
+      console.log('[useUsageLimits] API response:', data)
+      
       if (data.success) {
         setUsage(data.data)
       } else {
+        // Set default values if API fails
+        setUsage({
+          minutes: { used: 0, limit: 100, percentage: 0, remaining: 100, canMakeCall: true },
+          assistants: { count: 0, limit: 10, canCreateAssistant: true },
+          account_status: 'NORMAL'
+        })
         throw new Error(data.error?.message || 'Failed to fetch usage data')
       }
     } catch (err) {
@@ -76,8 +98,9 @@ export function useUsageLimits() {
     return () => clearInterval(interval)
   }, [fetchUsage, user])
 
-  const canCreateAssistant = usage?.assistants?.canCreateAssistant ?? false
-  const canMakeCall = usage?.minutes?.canMakeCall ?? false
+  // Default to true while loading, let the server check enforce the actual limit
+  const canCreateAssistant = loading ? true : (usage?.assistants?.canCreateAssistant ?? false)
+  const canMakeCall = loading ? true : (usage?.minutes?.canMakeCall ?? false)
   const isAtAssistantLimit = !canCreateAssistant
   const isOverMinuteLimit = !canMakeCall
 
