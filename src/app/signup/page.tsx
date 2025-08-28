@@ -40,11 +40,6 @@ function SignUpContent() {
       setError('')
       
       await signInWithGoogle()
-      
-      toast({
-        title: 'Welcome to Voice Matrix Demo!',
-        description: `Your demo account is ready with ${DEMO_LIMITS.MAX_ASSISTANTS} assistants and ${DEMO_LIMITS.MAX_MINUTES_TOTAL} minutes.`,
-      })
     } catch (error: any) {
       console.error('Google sign-in error:', error)
       setError(error.message || 'Google sign-in failed')
@@ -97,11 +92,6 @@ function SignUpContent() {
         })
         return
       }
-
-      toast({
-        title: 'Welcome to Voice Matrix Demo!',
-        description: `Your demo account is ready with ${DEMO_LIMITS.MAX_ASSISTANTS} assistants and ${DEMO_LIMITS.MAX_MINUTES_TOTAL} minutes.`,
-      })
 
       router.push('/dashboard')
 
