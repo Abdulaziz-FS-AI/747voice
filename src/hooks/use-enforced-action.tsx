@@ -29,17 +29,7 @@ export function useEnforcedAction({
   
   const [isChecking, setIsChecking] = useState(false)
 
-  // Debug logging to understand the issue
-  console.log('[DEBUG] useEnforcedAction:', {
-    actionType,
-    usage,
-    loading,
-    canCreateAssistant,
-    canMakeCall,
-    assistantCount: usage?.assistants?.count,
-    assistantLimit: usage?.assistants?.limit,
-    canCreateFromUsage: usage?.assistants?.canCreateAssistant
-  })
+  // Debug logging removed for production
 
   const canPerform = () => {
     // If still loading, allow action (will be checked again on submit)

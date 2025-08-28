@@ -28,11 +28,11 @@ export function useUsageLimits() {
 
   const fetchUsage = useCallback(async () => {
     if (!user) {
-      console.log('[useUsageLimits] No user found, skipping usage fetch')
-      // Set default values when no user
+      // No user found, using default values
+      // Set default values when no user (match actual demo limits)
       setUsage({
-        minutes: { used: 0, limit: 100, percentage: 0, remaining: 100, canMakeCall: true },
-        assistants: { count: 0, limit: 10, canCreateAssistant: true },
+        minutes: { used: 0, limit: 10, percentage: 0, remaining: 10, canMakeCall: true },
+        assistants: { count: 0, limit: 3, canCreateAssistant: true },
         account_status: 'NORMAL'
       })
       setLoading(false)
@@ -53,10 +53,10 @@ export function useUsageLimits() {
 
       if (!response.ok) {
         console.error('[useUsageLimits] API returned error:', response.status, response.statusText)
-        // Set default values if API fails
+        // Set default values if API fails (match actual demo limits)
         setUsage({
-          minutes: { used: 0, limit: 100, percentage: 0, remaining: 100, canMakeCall: true },
-          assistants: { count: 0, limit: 10, canCreateAssistant: true },
+          minutes: { used: 0, limit: 10, percentage: 0, remaining: 10, canMakeCall: true },
+          assistants: { count: 0, limit: 3, canCreateAssistant: true },
           account_status: 'NORMAL'
         })
         throw new Error(`Failed to fetch usage data: ${response.statusText}`)
@@ -64,15 +64,15 @@ export function useUsageLimits() {
 
       const data = await response.json()
       
-      console.log('[useUsageLimits] API response:', data)
+      // API response received
       
       if (data.success) {
         setUsage(data.data)
       } else {
-        // Set default values if API fails
+        // Set default values if API fails (match actual demo limits)
         setUsage({
-          minutes: { used: 0, limit: 100, percentage: 0, remaining: 100, canMakeCall: true },
-          assistants: { count: 0, limit: 10, canCreateAssistant: true },
+          minutes: { used: 0, limit: 10, percentage: 0, remaining: 10, canMakeCall: true },
+          assistants: { count: 0, limit: 3, canCreateAssistant: true },
           account_status: 'NORMAL'
         })
         throw new Error(data.error?.message || 'Failed to fetch usage data')

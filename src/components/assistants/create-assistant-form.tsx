@@ -20,7 +20,6 @@ import { EvaluationSelector } from '@/components/assistants/evaluation-selector'
 import { MessageType } from '@/components/assistants/client-messages-selector'
 import { StructuredQuestion, EvaluationRubric } from '@/lib/structured-data'
 import { useEnforcedAction } from '@/hooks/use-enforced-action'
-import { UsageStatusIndicator } from '@/components/ui/usage-status-indicator'
 
 // Form data interface
 interface AssistantFormData {
@@ -222,11 +221,6 @@ export function CreateAssistantForm({ templateData, onCancel }: CreateAssistantF
 
       {/* Main Form Content */}
       <div className="max-w-6xl mx-auto px-8 py-8">
-        {/* Usage Status Card */}
-        <div className="mb-6">
-          <UsageStatusIndicator variant="card" className="bg-gray-900/50 backdrop-blur border-gray-700" />
-        </div>
-
         {/* Limit Warning */}
         {!canPerform && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
