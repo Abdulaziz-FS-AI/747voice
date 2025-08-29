@@ -13,9 +13,7 @@ import {
   Activity,
   Target,
   CalendarDays,
-  Zap,
   ArrowRight,
-  PlayCircle,
   AlertCircle,
   RefreshCw
 } from 'lucide-react'
@@ -24,7 +22,7 @@ import { DashboardLayout } from '@/components/dashboard/layout'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { SimpleBarChart, SimpleLineChart } from '@/components/analytics/simple-bar-chart'
+import { SimpleBarChart } from '@/components/analytics/simple-bar-chart'
 
 interface AnalyticsSummary {
   totalCalls: number
@@ -167,7 +165,6 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [hasData, setHasData] = useState(false)
 
   // Always allow access to analytics page
   useEffect(() => {
@@ -198,8 +195,6 @@ export default function AnalyticsPage() {
       
       if (data.success) {
         setAnalytics(data.data)
-        // Check if user has any meaningful data
-        setHasData(data.data.totalCalls > 0 || data.data.topAssistants.length > 0)
       } else {
         throw new Error(data.error?.message || 'Failed to load analytics')
       }
@@ -212,30 +207,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const generateSampleData = async () => {
-    if (!user || generatingData) return
-    
-    try {
-      setGeneratingData(true)
-      const response = await fetch('/api/analytics/generate-sample-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      
-      const data = await response.json()
-      
-      if (data.success) {
-        // Refresh analytics after generating data
-        fetchAnalytics()
-      } else {
-        console.error('Failed to generate sample data:', data.error)
-      }
-    } catch (err) {
-      console.error('Generate sample data error:', err)
-    } finally {
-      setGeneratingData(false)
-    }
-  }
 
   return (
     <DashboardLayout>
@@ -379,7 +350,6 @@ export default function AnalyticsPage() {
               className="grid gap-4 md:grid-cols-3"
             >
               <MetricCard title="Total Calls" value={0} subtitle="All-time conversations" icon={Phone} />
-              <MetricCard title="Total Cost" value="$0.00" subtitle="Voice AI expenses" icon={DollarSign} />
               <MetricCard title="Avg Duration" value="0s" subtitle="Per conversation" icon={Clock} />
               <MetricCard title="Success Rate" value="0%" subtitle="Successful interactions" icon={Target} />
             </motion.div>
@@ -459,7 +429,7 @@ export default function AnalyticsPage() {
                 value={analytics?.totalCalls || 0}
                 subtitle="All-time conversations" 
                 icon={Phone}
-                trend={analytics?.totalCalls > 0 ? { value: 12, isPositive: true } : undefined}
+                trend={analytics?.totalCalls && analytics.totalCalls > 0 ? { value: 12, isPositive: true } : undefined}
               />
               <MetricCard 
                 title="Avg Duration" 
@@ -472,7 +442,7 @@ export default function AnalyticsPage() {
                 value={`${Math.round(analytics?.successRate || 0)}%`}
                 subtitle="Successful interactions" 
                 icon={Target}
-                trend={analytics?.successRate > 50 ? { value: 5, isPositive: true } : undefined}
+                trend={analytics?.successRate && analytics.successRate > 50 ? { value: 5, isPositive: true } : undefined}
               />
             </motion.div>
 
