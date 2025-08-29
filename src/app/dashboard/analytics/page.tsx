@@ -121,7 +121,6 @@ const MetricCard = ({ title, value, subtitle, icon: Icon, trend }: {
   const getIconColor = () => {
     switch(title) {
       case 'Total Calls': return '#3b82f6' // Blue
-      case 'Total Cost': return '#10b981' // Green
       case 'Avg Duration': return '#f59e0b' // Amber
       case 'Success Rate': return '#8b5cf6' // Purple
       default: return 'var(--vm-text-muted)'
@@ -377,7 +376,7 @@ export default function AnalyticsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-4 md:grid-cols-3"
             >
               <MetricCard title="Total Calls" value={0} subtitle="All-time conversations" icon={Phone} />
               <MetricCard title="Total Cost" value="$0.00" subtitle="Voice AI expenses" icon={DollarSign} />
@@ -436,9 +435,8 @@ export default function AnalyticsPage() {
           // Error State - still shows page structure
           <div className="space-y-8">
             {/* Show basic metrics with placeholder data */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
               <MetricCard title="Total Calls" value="--" subtitle="Temporarily unavailable" icon={Phone} />
-              <MetricCard title="Total Cost" value="--" subtitle="Temporarily unavailable" icon={DollarSign} />
               <MetricCard title="Avg Duration" value="--" subtitle="Temporarily unavailable" icon={Clock} />
               <MetricCard title="Success Rate" value="--" subtitle="Temporarily unavailable" icon={Target} />
             </div>
@@ -454,7 +452,7 @@ export default function AnalyticsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-4 md:grid-cols-3"
             >
               <MetricCard 
                 title="Total Calls" 
@@ -462,12 +460,6 @@ export default function AnalyticsPage() {
                 subtitle="All-time conversations" 
                 icon={Phone}
                 trend={analytics?.totalCalls > 0 ? { value: 12, isPositive: true } : undefined}
-              />
-              <MetricCard 
-                title="Total Cost" 
-                value={`$${(analytics?.totalCost || 0).toFixed(2)}`}
-                subtitle="Voice AI expenses" 
-                icon={DollarSign}
               />
               <MetricCard 
                 title="Avg Duration" 
@@ -542,10 +534,6 @@ export default function AnalyticsPage() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-semibold text-green-400">${assistant.cost.toFixed(2)}</div>
-                                <div className="text-sm text-gray-500">cost</div>
-                              </div>
                             </motion.div>
                           ))}
                         </div>
@@ -609,7 +597,6 @@ export default function AnalyticsPage() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-semibold text-green-400">${activity.cost.toFixed(2)}</div>
                                 <div className="text-xs text-gray-500">
                                   {new Date(activity.timestamp).toLocaleDateString()}
                                 </div>
@@ -638,7 +625,7 @@ export default function AnalyticsPage() {
                       Daily Performance
                     </CardTitle>
                     <CardDescription className="text-gray-400">
-                      Call volume and costs over the past week
+                      Call volume and performance over the past week
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -658,18 +645,6 @@ export default function AnalyticsPage() {
                           { label: 'Sat', value: 0 },
                           { label: 'Sun', value: 0 }
                         ]}
-                        height={150}
-                      />
-                    </div>
-                    
-                    {/* Cost Trend Chart */}
-                    <div>
-                      <h4 className="text-sm font-medium vm-text-primary mb-3">Cost Trend</h4>
-                      <SimpleLineChart
-                        data={analytics?.dailyStats?.map(day => ({
-                          date: new Date(day.date).toLocaleDateString(),
-                          value: day.cost
-                        })) || []}
                         height={150}
                       />
                     </div>
