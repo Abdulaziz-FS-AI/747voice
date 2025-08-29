@@ -114,7 +114,6 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           totalCalls: 0,
-          totalCost: 0,
           totalDuration: 0,
           avgDuration: 0,
           successRate: 0,
@@ -151,7 +150,6 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           totalCalls: 0,
-          totalCost: 0,
           totalDuration: 0,
           avgDuration: 0,
           successRate: 0,

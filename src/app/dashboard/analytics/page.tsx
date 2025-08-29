@@ -701,9 +701,6 @@ export default function AnalyticsPage() {
                                 <span>{Math.round(day.avgDuration)}s avg</span>
                               </div>
                             </div>
-                            <div className="font-semibold vm-text-primary">
-                              ${day.cost.toFixed(2)}
-                            </div>
                           </motion.div>
                         ))}
                       </div>
