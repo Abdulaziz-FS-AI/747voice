@@ -9,23 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Phone, 
   Users, 
-  DollarSign, 
   TrendingUp, 
   TrendingDown,
-  Target,
-  MessageSquare,
-  Clock,
-  BarChart3,
-  PieChart
+  MessageSquare
 } from 'lucide-react'
 
 interface DashboardData {
   metrics: {
     totalCalls: number
     totalLeads: number
-    totalCost: number
     conversionRate: number
-    costPerLead: number
     avgSentiment: number
     avgEngagement: number
   }
@@ -34,7 +27,6 @@ interface DashboardData {
     calls: number
     leads: number
     conversionRate: number
-    cost: number
     sentiment: number
   }>
   leadQuality: {
@@ -66,7 +58,6 @@ interface DashboardData {
     name: string
     calls: number
     leads: number
-    cost: number
     conversionRate: number
   }>
 }
@@ -286,7 +277,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <MetricCard
           title="Total Calls"
           value={data.metrics.totalCalls.toLocaleString()}
@@ -298,12 +289,6 @@ export default function AnalyticsDashboard() {
           value={data.metrics.totalLeads.toLocaleString()}
           icon={Users}
           description={`${data.metrics.conversionRate}% conversion rate`}
-        />
-        <MetricCard
-          title="Total Cost"
-          value={`$${data.metrics.totalCost.toLocaleString()}`}
-          icon={DollarSign}
-          description={`$${data.metrics.costPerLead} per lead`}
         />
         <MetricCard
           title="Avg Sentiment"
@@ -453,7 +438,6 @@ export default function AnalyticsDashboard() {
                       <th className="text-right p-2">Calls</th>
                       <th className="text-right p-2">Leads</th>
                       <th className="text-right p-2">Conversion</th>
-                      <th className="text-right p-2">Cost</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -463,7 +447,6 @@ export default function AnalyticsDashboard() {
                         <td className="p-2 text-right">{assistant.calls}</td>
                         <td className="p-2 text-right">{assistant.leads}</td>
                         <td className="p-2 text-right">{assistant.conversionRate}%</td>
-                        <td className="p-2 text-right">${assistant.cost.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>

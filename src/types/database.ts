@@ -239,6 +239,7 @@ export interface Database {
           assistant_id: string
           vapi_call_id: string | null
           duration_minutes: number
+          duration_seconds: number
           evaluation: string | number | boolean | null
           caller_number: string | null
           transcript: string | null
@@ -253,6 +254,7 @@ export interface Database {
           assistant_id: string
           vapi_call_id?: string | null
           duration_minutes?: number
+          duration_seconds?: number
           evaluation?: string | number | boolean | null
           caller_number?: string | null
           transcript?: string | null
@@ -267,6 +269,7 @@ export interface Database {
           assistant_id?: string
           vapi_call_id?: string | null
           duration_minutes?: number
+          duration_seconds?: number
           evaluation?: string | number | boolean | null
           caller_number?: string | null
           transcript?: string | null

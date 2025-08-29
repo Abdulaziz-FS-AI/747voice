@@ -264,26 +264,6 @@ export default function AssistantsPage() {
               </motion.p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Usage Status Indicator */}
-              {usage && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="text-right"
-                >
-                  <div className="text-sm text-gray-300 mb-1">
-                    Assistant Usage
-                  </div>
-                  <div className={`text-lg font-bold flex items-center gap-2 ${
-                    isAtAssistantLimit ? 'text-red-400' : usage.assistants.count >= usage.assistants.limit * 0.8 ? 'text-yellow-400' : 'text-green-400'
-                  }`}>
-                    {usage.assistants.count}/{usage.assistants.limit}
-                    {isAtAssistantLimit && <Lock className="h-4 w-4" />}
-                  </div>
-                </motion.div>
-              )}
-
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

@@ -64,12 +64,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate ACTUAL usage from call logs for this specific user
-    const { data: actualUsageData } = await supabase.rpc('get_user_actual_usage', {
+    // Calculate ACTUAL usage from call logs for this specific user (in seconds, then convert to minutes)
+    const { data: actualUsageData } = await supabase.rpc('get_user_actual_usage_seconds', {
       p_user_id: userId
     })
 
-    const actualUsageMinutes = actualUsageData?.[0]?.actual_usage || userProfile.current_usage_minutes || 0
+    // Get usage in minutes from the seconds-based calculation for higher precision
+    const actualUsageMinutes = actualUsageData?.[0]?.total_usage_minutes || userProfile.current_usage_minutes || 0
+    const totalUsageSeconds = actualUsageData?.[0]?.total_usage_seconds || 0
 
     // Transform the data to match the expected format using ACTUAL usage
     const limit = userProfile.max_minutes_total || 10
@@ -92,7 +94,16 @@ export async function GET(request: NextRequest) {
       account_status: userProfile.account_status || 'NORMAL'
     }
 
-    // Debug logging removed for production
+    // Debug logging for usage calculation
+    console.log('[USAGE] Usage calculation:', {
+      userId,
+      userEmail: user.email,
+      totalUsageSeconds,
+      actualUsageMinutes,
+      activeAssistants: userProfile.active_assistants,
+      maxAssistants: userProfile.max_assistants,
+      totalCalls: actualUsageData?.[0]?.total_calls || 0
+    })
 
     return NextResponse.json({
       success: true,

@@ -38,12 +38,10 @@ export async function GET(request: NextRequest) {
             totalCalls: 0,
             successRate: 0,
             avgCallDuration: 0,
-            totalCost: 0,
             totalDuration: 0,
             uniqueCallers: 0
           },
           callVolume: [],
-          costTrend: [],
           successRateTrend: [],
           assistantPerformance: [],
           hourlyDistribution: Array(24).fill(0),
@@ -81,40 +79,32 @@ export async function GET(request: NextRequest) {
     const successRate = totalCalls > 0 ? (completedCalls / totalCalls) * 100 : 0
     const totalDuration = allCalls.reduce((sum, call) => sum + (call.duration_minutes || 0), 0)
     const avgCallDuration = totalCalls > 0 ? totalDuration / totalCalls : 0
-    const totalCost = allCalls.reduce((sum, call) => sum + (call.cost || 0), 0)
     const uniqueCallers = new Set(allCalls.map(c => c.caller_number)).size
     
     // Calculate daily trends
-    const dailyMap = new Map<string, { calls: number, cost: number, completed: number }>()
+    const dailyMap = new Map<string, { calls: number, completed: number }>()
     
     allCalls.forEach(call => {
       const date = new Date(call.started_at || call.created_at).toISOString().split('T')[0]
-      const existing = dailyMap.get(date) || { calls: 0, cost: 0, completed: 0 }
+      const existing = dailyMap.get(date) || { calls: 0, completed: 0 }
       
       dailyMap.set(date, {
         calls: existing.calls + 1,
-        cost: existing.cost + (call.cost || 0),
         completed: existing.completed + (call.evaluation === 'excellent' || call.evaluation === 'good' || call.evaluation === 'average' ? 1 : 0)
       })
     })
     
     // Generate trend data for all days in range
     const callVolume = []
-    const costTrend = []
     const successRateTrend = []
     
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = new Date(d).toISOString().split('T')[0]
-      const dayData = dailyMap.get(dateStr) || { calls: 0, cost: 0, completed: 0 }
+      const dayData = dailyMap.get(dateStr) || { calls: 0, completed: 0 }
       
       callVolume.push({
         date: dateStr,
         value: dayData.calls
-      })
-      
-      costTrend.push({
-        date: dateStr,
-        value: dayData.cost
       })
       
       successRateTrend.push({
@@ -127,7 +117,6 @@ export async function GET(request: NextRequest) {
     const assistantPerformance = assistants?.map(assistant => {
       const assistantCalls = allCalls.filter(c => c.assistant_id === assistant.id)
       const completed = assistantCalls.filter(c => c.evaluation === 'excellent' || c.evaluation === 'good' || c.evaluation === 'average').length
-      const totalAssistantCost = assistantCalls.reduce((sum, c) => sum + (c.cost || 0), 0)
       const totalAssistantDuration = assistantCalls.reduce((sum, c) => sum + (c.duration_minutes || 0), 0)
       
       return {
@@ -135,7 +124,6 @@ export async function GET(request: NextRequest) {
         name: assistant.name,
         totalCalls: assistantCalls.length,
         successRate: assistantCalls.length > 0 ? (completed / assistantCalls.length) * 100 : 0,
-        totalCost: totalAssistantCost,
         avgDuration: assistantCalls.length > 0 ? totalAssistantDuration / assistantCalls.length : 0
       }
     }).sort((a, b) => b.totalCalls - a.totalCalls)
@@ -164,12 +152,10 @@ export async function GET(request: NextRequest) {
           totalCalls,
           successRate: Number(successRate.toFixed(1)),
           avgCallDuration: Number(avgCallDuration.toFixed(0)),
-          totalCost: Number(totalCost.toFixed(2)),
           totalDuration,
           uniqueCallers
         },
         callVolume,
-        costTrend,
         successRateTrend,
         assistantPerformance,
         hourlyDistribution,
