@@ -42,7 +42,6 @@ interface CallLog {
   id: string
   callerNumber: string
   duration: number
-  cost: number
   startedAt: string
   transcript: string
   shortTranscript: string
@@ -59,7 +58,6 @@ interface AssistantAnalytics {
   }
   metrics: {
     totalCalls: number
-    totalCost: number
     avgDuration: number
     successRate: number
   }

@@ -9,7 +9,6 @@ import {
   TrendingUp, 
   Phone, 
   Clock, 
-  DollarSign,
   Users,
   Activity,
   Target,
@@ -29,7 +28,6 @@ import { SimpleBarChart, SimpleLineChart } from '@/components/analytics/simple-b
 
 interface AnalyticsSummary {
   totalCalls: number
-  totalCost: number
   totalDuration: number
   avgDuration: number
   successRate: number
@@ -37,7 +35,6 @@ interface AnalyticsSummary {
     id: string
     name: string
     calls: number
-    cost: number
     successRate: number
   }>
   recentActivity: Array<{
@@ -45,14 +42,12 @@ interface AnalyticsSummary {
     assistantName: string
     callerNumber: string
     duration: number
-    cost: number
     success: boolean
     timestamp: string
   }>
   dailyStats: Array<{
     date: string
     calls: number
-    cost: number
     avgDuration: number
   }>
 }

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/auth'
 import { createServiceRoleClient } from '@/lib/supabase'
 
-// Configurable cost per minute (defaults to $0.10 if not set)
-const COST_PER_MINUTE = Number(process.env.VAPI_COST_PER_MINUTE) || 0.10
 
 // Helper function to safely parse and validate duration
 function validateDuration(duration: any): number {
@@ -75,13 +73,6 @@ function evaluateCallSuccess(evaluation: any): boolean {
   return false
 }
 
-// Helper function to calculate cost with validation
-function calculateCost(durationMinutes: number): number {
-  const validDuration = validateDuration(durationMinutes)
-  const cost = validDuration * COST_PER_MINUTE
-  // Round to 2 decimal places
-  return Math.round(cost * 100) / 100
-}
 
 // Helper function to safely get date string in UTC
 function getDateStringUTC(timestamp: string | null | undefined): string | null {
@@ -223,12 +214,6 @@ export async function GET(request: NextRequest) {
     // Calculate overall statistics with validation
     const totalCalls = allCalls.length
     
-    // Calculate cost based on seconds (convert to minutes for pricing)
-    const totalCost = allCalls.reduce((sum, call) => {
-      const seconds = Number(call.duration_seconds) || 0
-      const minutes = seconds / 60
-      return sum + calculateCost(minutes)
-    }, 0)
     
     // Total duration already in seconds
     const totalDuration = allCalls.reduce((sum, call) => {
@@ -249,11 +234,6 @@ export async function GET(request: NextRequest) {
         call.assistant_id === assistant.vapi_assistant_id
       )
       
-      const assistantCost = assistantCalls.reduce((sum, call) => {
-        const seconds = Number(call.duration_seconds) || 0
-        const minutes = seconds / 60
-        return sum + calculateCost(minutes)
-      }, 0)
       
       const assistantSuccessful = assistantCalls.filter(call => 
         evaluateCallSuccess(call.evaluation)
@@ -267,7 +247,6 @@ export async function GET(request: NextRequest) {
         id: assistant.id,
         name: assistant.name,
         calls: assistantCalls.length,
-        cost: assistantCost,
         successRate: Math.round(assistantSuccessRate)
       }
     }).filter(stat => stat.calls > 0) // Only include assistants with calls
@@ -282,15 +261,12 @@ export async function GET(request: NextRequest) {
       
       const success = evaluateCallSuccess(call.evaluation)
       const durationSeconds = Number(call.duration_seconds) || 0
-      const durationMinutes = durationSeconds / 60
 
       return {
         id: call.id,
         assistantName: assistant?.name || 'Unknown Assistant',
         callerNumber: call.caller_number || 'Unknown',
-        duration: Math.round(durationSeconds), // Already in seconds
-        durationMinutes: durationMinutes, // Keep minutes for cost calculation
-        cost: calculateCost(durationMinutes),
+        duration: Math.round(durationSeconds),
         success,
         timestamp: call.started_at || call.created_at
       }
@@ -310,11 +286,6 @@ export async function GET(request: NextRequest) {
         return callDate === dateStr
       })
       
-      const dayCost = dayCalls.reduce((sum, call) => {
-        const seconds = Number(call.duration_seconds) || 0
-        const minutes = seconds / 60
-        return sum + calculateCost(minutes)
-      }, 0)
       
       const dayDuration = dayCalls.reduce((sum, call) => {
         return sum + (Number(call.duration_seconds) || 0)
@@ -325,7 +296,6 @@ export async function GET(request: NextRequest) {
       dailyStats.push({
         date: dateStr,
         calls: dayCalls.length,
-        cost: Math.round(dayCost * 100) / 100, // Round to 2 decimals
         avgDuration: Math.round(dayAvgDuration)
       })
     }
@@ -335,7 +305,6 @@ export async function GET(request: NextRequest) {
       totalCalls,
       successfulCalls: successfulCalls.length,
       successRate: successRate.toFixed(1),
-      costPerMinute: COST_PER_MINUTE,
       assistantsWithCalls: assistantStats.length
     })
 
@@ -343,7 +312,6 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         totalCalls,
-        totalCost: Math.round(totalCost * 100) / 100,
         totalDuration,
         avgDuration: Math.round(avgDuration),
         successRate: Math.round(successRate * 10) / 10,
@@ -365,7 +333,6 @@ export async function GET(request: NextRequest) {
       // Still return empty data structure so UI doesn't break
       data: {
         totalCalls: 0,
-        totalCost: 0,
         totalDuration: 0,
         avgDuration: 0,
         successRate: 0,
